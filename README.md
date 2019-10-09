@@ -1,5 +1,5 @@
 # Insincere-Questions-Classification
-My submittion to Kaggle "Quora Insincere Questions Classification" challenge :
+Submittion to Kaggle "Quora Insincere Questions Classification" challenge :
 
 "
 In this competition you will be predicting whether a question asked on Quora is sincere or not.
