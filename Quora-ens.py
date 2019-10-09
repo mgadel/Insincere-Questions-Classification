@@ -53,18 +53,16 @@ test = pd.read_csv("../input/test.csv")
 ## GLOBAL PARAMETERS
 ########################################
 
-    # We want to find the longest sentence of the training set and 
-        # pad everything to 0 for smaller sentences
-        # truncated all sentence which are longer.
-
+# After studying the training set we define a maximum length of words for sentences.
+# We pad everything to 0 for smaller sentences and truncate all slonger sentences.
 
 max_Len_sentence = 70
 embed_size=300
 
-#define a max of value to work from the matrix embedding
+# Define a maximum value for features to use from embedding matrix (reduce bias and computaion time)
 max_features_embedding =50000
 
-
+# Manually do some text cleaning
 puncts = [',', '.', '"', ':', ')', '(', '-', '!', '?', '|', ';', "'", '$', '&', '/', '[', ']', '>', '%', '=', '#', '*', '+', '\\', '•',  '~', '@', '£', 
 '·', '_', '{', '}', '©', '^', '®', '`',  '<', '→', '°', '€', '™', '›',  '♥', '←', '×', '§', '″', '′', 'Â', '█', '½', 'à', '…', 
 '“', '★', '”', '–', '●', 'â', '►', '−', '¢', '²', '¬', '░', '¶', '↑', '±', '¿', '▾', '═', '¦', '║', '―', '¥', '▓', '—', '‹', '─', 
@@ -173,6 +171,8 @@ test["question_text"] = test["question_text"].apply(lambda x: replace_typical_mi
 ## TOKKENIZE THE DATAS
 ########################################
 
+# Tokkenize the data and preprocess 
+
 print('create Tokenizer ')
 
 tokenizer = Tokenizer(num_words=max_features_embedding)
@@ -181,7 +181,6 @@ tokenizer.fit_on_texts(Full_Tokenize_dat)
 
 print('Tokenize Datas ')
 
-#on remplis les missing par ##_
 train_tokenized = tokenizer.texts_to_sequences(train['question_text'].fillna('##_'))
 test_tokenized = tokenizer.texts_to_sequences(test['question_text'].fillna('##_'))                                          
 
@@ -199,7 +198,8 @@ X_test_pad=pad_sequences(test_tokenized,maxlen=max_Len_sentence,padding='post')
 
 print('Define and Load Embedding Matrix')
 
-# Load GloVes Function
+# Manually load GloVe Matrix (as required by Kaggle)
+# The idea is to define a maximum number of GloVe features to be taken into consideration
 
 def Load_GloVes(glove_file,word_index):
     
@@ -213,22 +213,20 @@ def Load_GloVes(glove_file,word_index):
             words.add(curr_word)
             Glove_Index[curr_word] = np.array(tmpLine[1:], dtype='float32')
     
-    #on prend le mean et la std
-    #all_embs = np.stack(embeddings_index.values())
+    # We define mean and std of embedding matrix to built the embedding matrix with a maximum size
     words=list(Glove_Index.values())
     emb_mean,emb_std = np.array(words).mean(), np.array(words).std()
     
-    #on reduit la taille de la matrix embedding pour diminuer le temps de calcu
+    # Set a maximum size to the embedding matrix given the Training set
     nb_words_emb=min(max_features_embedding,len(word_index))
     
-    #On initialize la matrice avec la moyenne de tout // we add +1 to fit keras requirements
+    # Initiallize the matrix with means and std.
+    # Add +1 to the shape to fit KERAS requirements
     embedding_matrix = np.random.normal(emb_mean, emb_std, (nb_words_emb+1, embed_size))
-      
-    # continue = on garde l'itération tant que la condition est respectée
+     
     for word, i in word_index.items():
         if i >= max_features_embedding: continue
         embedding_vector = Glove_Index.get(word)
-        # on traite le cas ou le mot ne soit pas dans le dico
         if embedding_vector is not None:
             embedding_matrix[i] = embedding_vector
         
@@ -248,7 +246,7 @@ embedding_matrix=Load_GloVes(EMBEDDING_FILE,word_index)
 
 print('Define LSTM Model')
 
-
+# User define Softmax to deal with axis problems
 def softMaxAxis1(x):
     return softmax(x,axis=1)
 
@@ -269,6 +267,10 @@ def dot_product(x, kernel):
 
 class Attention_HCN (Layer):
 
+    # Idea is to use Attention to define weights
+    
+    ATTENTION Network
+    
     def __init__(self, bias=True, **kwargs):
 
         self.supports_masking = True
@@ -334,9 +336,9 @@ class Attention_HCN (Layer):
 
 
 def Attention_Architecture(input_shape,embedding_matrix):
+    # Define the Model architecture
+    # Concatenate results of the usual LSTM and 
     
-    # Define Inputs / Shape
-        # Les inputs sont les 1 Hot Vectors des Mots de la phrase
     emb_size=embedding_matrix.shape[1]
     max_features_embedding=embedding_matrix.shape[0]
 
@@ -344,7 +346,6 @@ def Attention_Architecture(input_shape,embedding_matrix):
     Activation_0 = Input(shape=input_shape)
 
     emb = Embedding(max_features_embedding,emb_size, weights=[embedding_matrix],trainable=False)(Activation_0)
-    # First Layer - de dimension (m,Tx,2*size LSTM 1)
     
     X = Bidirectional(LSTM(128,return_sequences=True),merge_mode='concat')(emb)
     
@@ -354,8 +355,6 @@ def Attention_Architecture(input_shape,embedding_matrix):
     lstm = LSTM(32,return_sequences=False)(X)     
       
     conc = Concatenate()([context,lstm])         
-         
-
 
     X = Dense(8,activation='relu')(conc)  
     #X = Dropout(0.3)(X) 
