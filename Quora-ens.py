@@ -233,12 +233,10 @@ def Load_GloVes(glove_file,word_index):
     return embedding_matrix
 
 
-
 # Load Dict and Embeddings
 embedding_matrix=Load_GloVes(EMBEDDING_FILE,word_index)                            
                                               
-
-
+    
 ########################################
 ## LTSM MODEL : DEFINITION
 ########################################
@@ -249,15 +247,21 @@ print('Define LSTM Model')
 def softMaxAxis1(x):
     return softmax(x,axis=1)
 
+
+# Attention for Hierarchical Attention Network, based on
+# https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-HATN/
+# And following paper
+# https://www.cs.cmu.edu/~./hovy/papers/16HLT-hierarchical-attention-networks.pdf
+
+
 def dot_product(x, kernel):
-    """
-    Wrapper for dot product operation, in order to be compatible with both
-    Theano and Tensorflow
-    Args:
-        x (): input
-        kernel (): weights
-    Returns:
-    """
+    # Wrapper for dot product operation, in order to be compatible with both
+    #Theano and Tensorflow
+    # Args:
+    #    x (): input
+    #    kernel (): weights
+    # Returns:
+
     if K.backend() == 'tensorflow':
         return K.squeeze(K.dot(x, K.expand_dims(kernel)), axis=-1)
     else:
@@ -266,10 +270,6 @@ def dot_product(x, kernel):
 
 class Attention_HCN (Layer):
 
-    # Idea is to use Attention to define weights
-    
-    ATTENTION Network
-    
     def __init__(self, bias=True, **kwargs):
 
         self.supports_masking = True
@@ -281,16 +281,10 @@ class Attention_HCN (Layer):
 
     def build(self, input_shape):
         
-        # this is where you will define your weights. This method must set self.built = True at the end, which can be done by calling super([Layer], self).build()
-        # on défini les variables sur lequelles on va apprendre
-        
-        assert len(input_shape) == 3
-        
+        assert len(input_shape) == 3        
         self.W = self.add_weight((input_shape[-1], input_shape[-1],),initializer=self.init,name='{}_W'.format(self.name))
-
         if self.bias:
             self.b = self.add_weight((input_shape[-1],),initializer='zero',name='{}_b'.format(self.name))
-
         self.u_word_level = self.add_weight((input_shape[-1],),initializer=self.init,name='{}_u'.format(self.name))
                                  
         super(Attention_HCN, self).build(input_shape)                         
@@ -299,8 +293,7 @@ class Attention_HCN (Layer):
     def compute_mask(self, input, input_mask=None):
         # do not pass the mask to the next layers
         return None
-                                
-                        
+                                                      
     def call(self,x,mask=None):
 
         # define ui en fonction de hi
@@ -328,7 +321,6 @@ class Attention_HCN (Layer):
 
         return K.sum(weighted_input, axis=1)
 
-
     def compute_output_shape(self, input_shape):
         return input_shape[0], input_shape[-1]
 
@@ -336,7 +328,7 @@ class Attention_HCN (Layer):
 
 def Attention_Architecture(input_shape,embedding_matrix):
     # Define the Model architecture
-    # Concatenate results of the usual LSTM encoder-decoder and an attention network (refer to paper) 
+    # Concatenate results of the usual LSTM encoder-decoder and HAN output (refer to paper) 
     
     emb_size=embedding_matrix.shape[1]
     max_features_embedding=embedding_matrix.shape[0]
@@ -358,14 +350,12 @@ def Attention_Architecture(input_shape,embedding_matrix):
     X = Dense(8,activation='relu')(conc)  
     #X = Dropout(0.3)(X) 
     #X = Dropout(0.5)(X)
-    # Dense = Sigmoid // One output then we chose the Threshold equal to 0/5
     X_out = Dense(1,activation="sigmoid",name='output_sigmoid')(X)
-    #@X_out=Flatten()(X_out)
+
     # Define the KERAS Model
     model = Model (inputs=Activation_0, outputs=X_out)
     
     return model
-
 
 
 print('Build the Model')
@@ -387,7 +377,6 @@ print('Train the Model')
 Y_train  = train ['target']
 
 # We are Working with Skewed Classes - Set up weights at the training time
-
 num_ones=Y_train[Y_train==1].shape[0]
 num_zeros=Y_train[Y_train==0].shape[0]
 
@@ -443,8 +432,6 @@ F1_thres, Max_F1, F =set_f1_threshold (Y_dev,yp_dev,0.01)
 ########################################
 ## PREDICT
 ########################################
-
-# INPUTS - rappel binary
 
 Y_pred = model.predict(X_test_pad)
 Y_pred_bin=set_prediction_threshold(Y_pred,F1_thres)
