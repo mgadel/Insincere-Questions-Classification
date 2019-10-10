@@ -184,7 +184,7 @@ print('Tokenize Datas ')
 train_tokenized = tokenizer.texts_to_sequences(train['question_text'].fillna('##_'))
 test_tokenized = tokenizer.texts_to_sequences(test['question_text'].fillna('##_'))                                          
 
-#Word Index est retourné par ce qui est entrainé par le Tokenizer
+
 word_index=tokenizer.word_index                                              
                                               
 print('Padding Sequences')
@@ -198,8 +198,8 @@ X_test_pad=pad_sequences(test_tokenized,maxlen=max_Len_sentence,padding='post')
 
 print('Define and Load Embedding Matrix')
 
-# Manually load GloVe Matrix (as required by Kaggle)
-# The idea is to define a maximum number of GloVe features to be taken into consideration
+# Manually load GloVe Matrix (required in this Kaggle competition)
+# Define a maximum number of GloVe features to be taken into consideration to reduce computing time
 
 def Load_GloVes(glove_file,word_index):
     
@@ -235,7 +235,6 @@ def Load_GloVes(glove_file,word_index):
 
 
 # Load Dict and Embeddings
-
 embedding_matrix=Load_GloVes(EMBEDDING_FILE,word_index)                            
                                               
 
@@ -337,7 +336,7 @@ class Attention_HCN (Layer):
 
 def Attention_Architecture(input_shape,embedding_matrix):
     # Define the Model architecture
-    # Concatenate results of the usual LSTM and 
+    # Concatenate results of the usual LSTM encoder-decoder and an attention network (refer to paper) 
     
     emb_size=embedding_matrix.shape[1]
     max_features_embedding=embedding_matrix.shape[0]
@@ -372,7 +371,6 @@ def Attention_Architecture(input_shape,embedding_matrix):
 print('Build the Model')
 
 # Built the Model
-
 model = Attention_Architecture((max_Len_sentence,),embedding_matrix)    
 model.summary()
 
@@ -388,27 +386,26 @@ print('Train the Model')
 
 Y_train  = train ['target']
 
-# We are Working with Skewed Classes - Set up Weights in the training
+# We are Working with Skewed Classes - Set up weights at the training time
 
 num_ones=Y_train[Y_train==1].shape[0]
 num_zeros=Y_train[Y_train==0].shape[0]
 
 d=int(num_zeros/num_ones)
 
-
 class_weight = {0: 1.,
                 1: d}
-
  
 X_train_pad_1 =X_train_pad[10000:]
 Y_train_1 = Y_train[10000:]
-
  
 model.fit(X_train_pad_1,Y_train_1,epochs=3,batch_size=256,shuffle=True,class_weight=class_weight)
 
 ########################################
 ## SET F1 ON DEV SET
 ########################################
+
+# The metric is F1 Score for the competition - We set the threshold to get the best F1 score on dev set.
 
 X_dev_pad = X_train_pad[:10000]
 yp_dev = model.predict(X_dev_pad)
@@ -441,9 +438,7 @@ def set_f1_threshold (Y_true,Y_pred_stat,pas):
     
     return F1_thres, max_F1, F
 
-
 F1_thres, Max_F1, F =set_f1_threshold (Y_dev,yp_dev,0.01)
-
 
 ########################################
 ## PREDICT
@@ -452,7 +447,6 @@ F1_thres, Max_F1, F =set_f1_threshold (Y_dev,yp_dev,0.01)
 # INPUTS - rappel binary
 
 Y_pred = model.predict(X_test_pad)
-
 Y_pred_bin=set_prediction_threshold(Y_pred,F1_thres)
 
 
