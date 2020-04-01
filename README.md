@@ -13,3 +13,10 @@ Uses sexual content (incest, bestiality, pedophilia) for shock value, and not to
 
 The training data includes the question that was asked, and whether it was identified as insincere (target = 1). The ground-truth labels contain some amount of noise: they are not guaranteed to be perfect.
 "
+
+
+Neural Network :
+1) Bi-LSTM 
+2) Concatenated with Attention (Hierarchical Attention Network) see 
+
+https://www.cs.cmu.edu/~./hovy/papers/16HLT-hierarchical-attention-networks.pdf
