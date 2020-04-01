@@ -339,8 +339,7 @@ def Attention_Architecture(input_shape,embedding_matrix):
     emb = Embedding(max_features_embedding,emb_size, weights=[embedding_matrix],trainable=False)(Activation_0)
     
     X = Bidirectional(LSTM(128,return_sequences=True),merge_mode='concat')(emb)
-    
-    #X = Dropout(0.3)(X)  
+    X = Dropout(0.3)(X)  
     
     context = Attention_HCN()(X)
     lstm = LSTM(32,return_sequences=False)(X)     
@@ -348,7 +347,7 @@ def Attention_Architecture(input_shape,embedding_matrix):
     conc = Concatenate()([context,lstm])         
 
     X = Dense(8,activation='relu')(conc)  
-    #X = Dropout(0.3)(X) 
+    X = Dropout(0.3)(X) 
     #X = Dropout(0.5)(X)
     X_out = Dense(1,activation="sigmoid",name='output_sigmoid')(X)
 
